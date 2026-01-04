@@ -1,23 +1,43 @@
-// Type definitions for screen-recorder
-// Will be populated in Phase 02
+/**
+ * Type definitions barrel file
+ * Re-exports all types for convenient imports
+ */
 
-export interface RecordingOptions {
-  captureMode: 'fullscreen' | 'window' | 'area'
-  windowId?: string
-  area?: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
-  includeSystemAudio?: boolean
-  includeMicrophone?: boolean
-}
+// Core recorder types
+export type {
+  CaptureMode,
+  CropArea,
+  RecordingOptions,
+  RecorderStatus,
+  RecorderState,
+  CaptureSource,
+  IRecorder
+} from './recorder'
 
-export type RecordingState = 'idle' | 'recording' | 'paused' | 'stopped'
+export {
+  DEFAULT_RECORDING_OPTIONS,
+  INITIAL_RECORDER_STATE
+} from './recorder'
 
-export interface RecorderStatus {
-  state: RecordingState
-  duration: number
-  fileSize: number
-}
+// Recording event types
+export type {
+  RecordingStartedEvent,
+  RecordingStoppedEvent,
+  RecordingPausedEvent,
+  RecordingResumedEvent,
+  RecordingErrorEvent,
+  RecordingChunkEvent,
+  RecordingStateChangeEvent,
+  RecordingEvent,
+  RecordingEventType
+} from './events'
+
+export { isRecordingEvent } from './events'
+
+// API types (preload bridge)
+export type { RecorderAPI } from './api'
+
+export {
+  isRecorderAPIAvailable,
+  getRecorderAPI
+} from './api'
