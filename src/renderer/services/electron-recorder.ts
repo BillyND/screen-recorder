@@ -12,6 +12,7 @@ import type {
 import { INITIAL_RECORDER_STATE } from '../types/recorder'
 import { getSupportedMimeType } from '../utils/codec-utils'
 import { createMixedAudioTrack, cleanupMixer } from '../utils/audio-mixer'
+import { StreamCropper, isAreaCropSupported } from './stream-cropper'
 
 /** Chunk interval for ondataavailable (5 seconds) */
 const CHUNK_INTERVAL_MS = 5000
@@ -34,6 +35,7 @@ export class ElectronRecorder implements IRecorder {
   private pausedDuration = 0
   private pauseStartTime = 0
   private durationInterval: number | null = null
+  private cropper: StreamCropper | null = null
 
   /**
    * Get available capture sources (screens and windows)
@@ -80,6 +82,15 @@ export class ElectronRecorder implements IRecorder {
         this.stream.getAudioTracks().forEach(t => this.stream?.removeTrack(t))
         this.stream.addTrack(mixedAudio)
       }
+    }
+
+    // Apply area cropping if requested
+    if (options.captureMode === 'area' && options.area) {
+      if (!isAreaCropSupported()) {
+        throw new Error('Area capture not supported in this browser')
+      }
+      this.cropper = new StreamCropper()
+      this.stream = await this.cropper.crop(this.stream, options.area)
     }
 
     // Create MediaRecorder with best available codec
@@ -282,6 +293,12 @@ export class ElectronRecorder implements IRecorder {
     this.startTime = 0
     this.pausedDuration = 0
     this.pauseStartTime = 0
+
+    // Stop cropper if active
+    if (this.cropper) {
+      this.cropper.stop()
+      this.cropper = null
+    }
 
     // Stop all stream tracks
     this.stream?.getTracks().forEach(track => track.stop())

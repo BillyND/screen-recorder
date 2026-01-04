@@ -16,3 +16,10 @@ export {
   hasMicrophonePermission,
   requestMicrophonePermission
 } from './audio-mixer'
+
+export {
+  scaleAreaForDPI,
+  scaleAreaFromDPI,
+  getDisplayScaleFactor,
+  isHighDPI
+} from './dpi-utils'
