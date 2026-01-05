@@ -1,6 +1,6 @@
 /**
  * Real-time screen preview component
- * Shows live preview of fullscreen or selected area
+ * Shows live preview of selected source or area
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -9,25 +9,35 @@ import type { CropArea } from '../types/recorder'
 
 interface Props {
   /** Preview mode */
-  mode: 'fullscreen' | 'area'
+  mode: 'source' | 'area'
+  /** Source ID for source mode (screen or window) */
+  sourceId?: string
   /** Selected area for area mode */
   area?: CropArea | null
   /** Whether preview is active */
   active?: boolean
 }
 
-export function ScreenPreview({ mode, area, active = true }: Props) {
+export function ScreenPreview({ mode, sourceId, area, active = true }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [sourceName, setSourceName] = useState<string>('')
 
   // Start/stop screen capture
   useEffect(() => {
+    // Stop existing stream
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop())
+      setStream(null)
+    }
+
     if (!active) {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-        setStream(null)
-      }
+      return
+    }
+
+    // For source mode, need sourceId
+    if (mode === 'source' && !sourceId) {
       return
     }
 
@@ -35,12 +45,27 @@ export function ScreenPreview({ mode, area, active = true }: Props) {
 
     const startCapture = async () => {
       try {
-        // Get primary screen source
-        const sources = await window.api?.sources?.list()
-        const screenSource = sources?.find((s: { type: string }) => s.type === 'screen')
+        let captureSourceId = sourceId
 
-        if (!screenSource) {
-          setError('No screen found')
+        // For area mode, get primary screen
+        if (mode === 'area') {
+          const sources = await window.api?.sources?.list()
+          const screenSource = sources?.find((s: { type: string }) => s.type === 'screen')
+          if (!screenSource) {
+            setError('No screen found')
+            return
+          }
+          captureSourceId = screenSource.id
+          setSourceName('Screen')
+        } else {
+          // Get source name for display
+          const sources = await window.api?.sources?.list()
+          const source = sources?.find((s: { id: string }) => s.id === sourceId)
+          setSourceName(source?.name || 'Unknown')
+        }
+
+        if (!captureSourceId) {
+          setError('No source selected')
           return
         }
 
@@ -51,7 +76,7 @@ export function ScreenPreview({ mode, area, active = true }: Props) {
             // @ts-expect-error - Electron-specific constraint
             mandatory: {
               chromeMediaSource: 'desktop',
-              chromeMediaSourceId: screenSource.id,
+              chromeMediaSourceId: captureSourceId,
               minWidth: 320,
               maxWidth: 1920,
               minHeight: 180,
@@ -83,11 +108,8 @@ export function ScreenPreview({ mode, area, active = true }: Props) {
 
     return () => {
       mounted = false
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-      }
     }
-  }, [active])
+  }, [active, mode, sourceId])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -160,8 +182,8 @@ export function ScreenPreview({ mode, area, active = true }: Props) {
           style={mode === 'area' && area ? getCropStyle() : undefined}
         />
         {/* Mode indicator */}
-        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 rounded text-[10px] text-white/80">
-          {mode === 'fullscreen' ? 'Full Screen' : `Area ${area?.width}×${area?.height}`}
+        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 rounded text-[10px] text-white/80 max-w-[150px] truncate">
+          {mode === 'source' ? sourceName : `Area ${area?.width}×${area?.height}`}
         </div>
       </div>
     </div>

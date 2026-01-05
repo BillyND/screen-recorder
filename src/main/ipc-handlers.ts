@@ -3,7 +3,7 @@
  * Handles communication between renderer and main
  */
 
-import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { ipcMain, BrowserWindow, dialog, shell } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { getSources, getDisplayScaleFactor, getPrimaryDisplayBounds } from './capturer'
@@ -27,7 +27,9 @@ export const IPC_CHANNELS = {
   FFMPEG_PROGRESS: 'ffmpeg:progress',
   VIDEO_SAVE: 'video:save',
   HIGHLIGHT_SHOW: 'highlight:show',
-  HIGHLIGHT_HIDE: 'highlight:hide'
+  HIGHLIGHT_HIDE: 'highlight:hide',
+  SHELL_SHOW_ITEM: 'shell:show-item-in-folder',
+  SHELL_OPEN_PATH: 'shell:open-path'
 } as const
 
 /**
@@ -200,6 +202,16 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle(IPC_CHANNELS.HIGHLIGHT_HIDE, async () => {
     hideHighlight()
     return { success: true }
+  })
+
+  // Shell: show item in folder
+  ipcMain.handle(IPC_CHANNELS.SHELL_SHOW_ITEM, async (_event, filePath: string) => {
+    shell.showItemInFolder(filePath)
+  })
+
+  // Shell: open path with default app
+  ipcMain.handle(IPC_CHANNELS.SHELL_OPEN_PATH, async (_event, filePath: string) => {
+    return shell.openPath(filePath)
   })
 }
 

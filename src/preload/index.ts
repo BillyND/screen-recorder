@@ -204,6 +204,17 @@ const api = {
     /** Hide highlight overlay */
     hide: (): Promise<{ success: boolean }> =>
       ipcRenderer.invoke(IPC_CHANNELS.HIGHLIGHT_HIDE)
+  },
+
+  /** Shell operations */
+  shell: {
+    /** Show file in folder (opens file explorer and selects the file) */
+    showItemInFolder: (filePath: string): Promise<void> =>
+      ipcRenderer.invoke('shell:show-item-in-folder', filePath),
+
+    /** Open file with default application */
+    openPath: (filePath: string): Promise<string> =>
+      ipcRenderer.invoke('shell:open-path', filePath)
   }
 }
 

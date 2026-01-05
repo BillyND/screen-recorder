@@ -54,8 +54,6 @@ export async function getSources(): Promise<CaptureSource[]> {
     fetchWindowIcons: true
   })
 
-  const displays = screen.getAllDisplays()
-
   const result = sources.map(source => {
     const isScreen = source.id.startsWith('screen:')
     let bounds: { x: number; y: number; width: number; height: number } | undefined
