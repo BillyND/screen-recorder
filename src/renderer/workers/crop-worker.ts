@@ -95,11 +95,8 @@ async function startCropping(
   processor = new Processor({ track: inputTrack })
   generator = new Generator({ kind: 'video' })
 
-  // Send cropped track back to main thread
-  postResponse(
-    { type: 'track', track: generator.track },
-    [generator.track]
-  )
+  // Send cropped track back to main thread (MediaStreamTrack not transferable)
+  postResponse({ type: 'track', track: generator.track })
 
   // Create transform stream for cropping
   const transformer = new TransformStream<VideoFrame, VideoFrame>({

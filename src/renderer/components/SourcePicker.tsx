@@ -3,6 +3,8 @@
  * Displays available screens and windows with thumbnails
  */
 
+import { Button } from './ui/button'
+import { RefreshCw } from 'lucide-react'
 import type { CaptureSource } from '../types/recorder'
 
 interface Props {
@@ -29,22 +31,24 @@ export function SourcePicker({
   const windows = sources.filter(s => s.type === 'window')
 
   return (
-    <div className="source-picker">
-      <div className="source-picker__header">
-        <h3>Select Source</h3>
-        <button
-          className="source-picker__refresh"
+    <div className="flex-1 overflow-auto p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium">Select Source</h3>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onRefresh}
           disabled={loading}
         >
+          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
           {loading ? 'Loading...' : 'Refresh'}
-        </button>
+        </Button>
       </div>
 
       {screens.length > 0 && (
-        <section className="source-picker__section">
-          <h4>Screens</h4>
-          <div className="source-picker__grid">
+        <section className="space-y-2">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Screens</h4>
+          <div className="grid grid-cols-2 gap-2">
             {screens.map(source => (
               <SourceCard
                 key={source.id}
@@ -58,9 +62,9 @@ export function SourcePicker({
       )}
 
       {windows.length > 0 && (
-        <section className="source-picker__section">
-          <h4>Windows</h4>
-          <div className="source-picker__grid">
+        <section className="space-y-2">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Windows</h4>
+          <div className="grid grid-cols-2 gap-2">
             {windows.map(source => (
               <SourceCard
                 key={source.id}
@@ -74,7 +78,7 @@ export function SourcePicker({
       )}
 
       {sources.length === 0 && !loading && (
-        <p className="source-picker__empty">No sources available</p>
+        <p className="text-center text-sm text-muted-foreground py-4">No sources available</p>
       )}
     </div>
   )
@@ -92,19 +96,21 @@ function SourceCard({
 }) {
   return (
     <button
-      className={`source-card ${selected ? 'source-card--selected' : ''}`}
+      className={`flex flex-col items-center gap-1 p-2 rounded-md border transition-colors ${selected ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border hover:border-primary/50 hover:bg-muted/50'}`}
       onClick={onSelect}
     >
       {source.thumbnail ? (
         <img
           src={source.thumbnail}
           alt={source.name}
-          className="source-card__thumbnail"
+          className="w-full h-16 object-cover rounded"
         />
       ) : (
-        <div className="source-card__placeholder" />
+        <div className="w-full h-16 bg-muted rounded flex items-center justify-center">
+          <span className="text-xs text-muted-foreground">No preview</span>
+        </div>
       )}
-      <span className="source-card__name" title={source.name}>
+      <span className="text-xs truncate w-full text-center" title={source.name}>
         {source.name}
       </span>
     </button>

@@ -21,31 +21,31 @@ export function RecordingStatus({ state, isRecording, isPaused }: Props) {
   }
 
   return (
-    <div className={`recording-status ${isPaused ? 'recording-status--paused' : ''}`}>
-      <div className="recording-status__indicator">
+    <div className={`flex flex-col items-center gap-2 p-4 ${isPaused ? 'opacity-75' : ''}`}>
+      <div className="flex items-center gap-2">
         {isRecording && !isPaused && (
-          <span className="recording-status__dot recording-status__dot--recording" />
+          <span className="h-3 w-3 rounded-full bg-red-500 animate-pulse-recording" />
         )}
         {isPaused && (
-          <span className="recording-status__dot recording-status__dot--paused" />
+          <span className="h-3 w-3 rounded-full bg-orange-500" />
         )}
         {state.status === 'stopping' && (
-          <span className="recording-status__text">Stopping...</span>
+          <span className="text-sm text-muted-foreground">Stopping...</span>
         )}
       </div>
 
-      <div className="recording-status__info">
-        <span className="recording-status__duration">
+      <div className="flex items-center gap-3 text-sm">
+        <span className="font-mono text-lg">
           {formatDuration(state.duration)}
         </span>
-        <span className="recording-status__separator">|</span>
-        <span className="recording-status__size">
+        <span className="text-muted-foreground">|</span>
+        <span className="text-muted-foreground">
           {formatFileSize(state.fileSize)}
         </span>
       </div>
 
       {isPaused && (
-        <span className="recording-status__paused-label">PAUSED</span>
+        <span className="text-xs font-medium text-orange-500 uppercase tracking-wide">PAUSED</span>
       )}
     </div>
   )

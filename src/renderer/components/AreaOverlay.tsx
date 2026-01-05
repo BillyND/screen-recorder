@@ -75,16 +75,16 @@ export function AreaOverlay({ onSelect, onCancel }: Props) {
     ctx.clearRect(area.x, area.y, area.width, area.height)
 
     // Draw border
-    ctx.strokeStyle = '#0078d4'
+    ctx.strokeStyle = '#3b82f6'
     ctx.lineWidth = 2
     ctx.strokeRect(area.x, area.y, area.width, area.height)
 
     // Draw dimensions label
     if (area.width > 40 && area.height > 20) {
-      ctx.fillStyle = '#0078d4'
+      ctx.fillStyle = '#3b82f6'
       ctx.font = 'bold 12px system-ui, sans-serif'
       ctx.fillText(
-        `${area.width} x ${area.height}`,
+        area.width + ' x ' + area.height,
         area.x + 4,
         area.y > 20 ? area.y - 6 : area.y + area.height + 16
       )
@@ -127,16 +127,16 @@ export function AreaOverlay({ onSelect, onCancel }: Props) {
   }, [])
 
   return (
-    <div className="area-overlay">
+    <div className="fixed inset-0 z-50">
       <canvas
         ref={canvasRef}
-        className="area-overlay__canvas"
+        className="absolute inset-0 cursor-crosshair"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       />
-      <div className="area-overlay__instructions">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-background/90 backdrop-blur rounded-lg border shadow-lg text-sm">
         Drag to select area. Press Enter to confirm, Escape to cancel.
       </div>
     </div>

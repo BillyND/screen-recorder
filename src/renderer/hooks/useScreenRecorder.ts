@@ -141,7 +141,7 @@ export function useScreenRecorder(): UseScreenRecorder {
   return {
     // State
     state,
-    isRecording: state.status === 'recording',
+    isRecording: state.status === 'recording' || state.status === 'paused',
     isPaused: state.status === 'paused',
     isIdle: state.status === 'idle',
     isStopping: state.status === 'stopping',

@@ -41,3 +41,19 @@ export {
   isRecorderAPIAvailable,
   getRecorderAPI
 } from './api'
+
+// Settings types
+export type {
+  OutputFormat,
+  Resolution,
+  FPS,
+  AppSettings,
+  SettingsAPI
+} from './settings'
+
+export {
+  RESOLUTION_MAP,
+  RESOLUTION_LABELS,
+  FPS_OPTIONS,
+  FORMAT_LABELS
+} from './settings'

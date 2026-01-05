@@ -3,6 +3,9 @@
  * Start, stop, pause, and resume buttons
  */
 
+import { Button } from './ui/button'
+import { Circle, Square, Pause, Play } from 'lucide-react'
+
 interface Props {
   /** Whether currently recording */
   isRecording: boolean
@@ -32,34 +35,36 @@ export function RecordingControls({
   // Not recording - show start button
   if (!isRecording) {
     return (
-      <div className="recording-controls">
-        <button
-          className="recording-controls__btn recording-controls__btn--start"
+      <div className="flex gap-2 justify-center">
+        <Button
           onClick={onStart}
           disabled={disabled}
+          className="bg-red-500 hover:bg-red-600 text-white px-6"
         >
-          <span className="recording-controls__icon">●</span>
+          <Circle className="h-4 w-4 mr-2 fill-current" />
           Start Recording
-        </button>
+        </Button>
       </div>
     )
   }
 
   // Recording - show pause and stop buttons
   return (
-    <div className="recording-controls recording-controls--active">
-      <button
-        className={`recording-controls__btn recording-controls__btn--pause ${isPaused ? 'recording-controls__btn--paused' : ''}`}
+    <div className="flex gap-2 justify-center">
+      <Button
+        variant={isPaused ? 'default' : 'outline'}
         onClick={isPaused ? onResume : onPause}
       >
-        {isPaused ? '▶ Resume' : '⏸ Pause'}
-      </button>
-      <button
-        className="recording-controls__btn recording-controls__btn--stop"
+        {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+      </Button>
+      <Button
+        variant="destructive"
         onClick={onStop}
+        className="px-6"
       >
-        ■ Stop
-      </button>
+        <Square className="h-4 w-4 mr-2 fill-current" />
+        Stop
+      </Button>
     </div>
   )
 }

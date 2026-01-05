@@ -1,16 +1,20 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'path'
 import { registerIpcHandlers, unregisterIpcHandlers } from './ipc-handlers'
+import { registerWindowControls } from './window-controls'
+import { registerAreaSelectorHandlers, unregisterAreaSelectorHandlers } from './area-selector-window'
 
 let mainWindow: BrowserWindow | null = null
 let ipcHandlersRegistered = false
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 800,
-    minHeight: 600,
+    frame: false,
+    titleBarStyle: 'hidden',
+    width: 400,
+    height: 600,
+    minWidth: 350,
+    minHeight: 400,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
@@ -38,6 +42,8 @@ app.whenReady().then(() => {
   // Register IPC handlers once after first window
   if (mainWindow && !ipcHandlersRegistered) {
     registerIpcHandlers(mainWindow)
+    registerWindowControls(mainWindow)
+    registerAreaSelectorHandlers()
     ipcHandlersRegistered = true
   }
 
@@ -57,4 +63,5 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   unregisterIpcHandlers()
+  unregisterAreaSelectorHandlers()
 })

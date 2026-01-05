@@ -15,3 +15,7 @@ export {
   calculateBitrate,
   formatBitrate
 } from './useRecordingTimer'
+
+export { useSettings } from './useSettings'
+export { useConversion } from './useConversion'
+export type { ConversionStatus, UseConversionReturn } from './useConversion'

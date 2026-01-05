@@ -3,8 +3,12 @@
  * Handles communication between renderer and main
  */
 
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, dialog } from 'electron'
+import * as fs from 'fs'
+import * as path from 'path'
 import { getSources, getDisplayScaleFactor, getPrimaryDisplayBounds } from './capturer'
+import { getAllSettings, setSetting, type AppSettings, type OutputFormat, type Resolution, type FPS } from './settings-store'
+import { convert, cancelConversion } from './ffmpeg-service'
 import type { RecordingOptions } from '../renderer/types/recorder'
 
 /** IPC channel names - must match preload */
@@ -13,14 +17,21 @@ export const IPC_CHANNELS = {
   DISPLAY_SCALE_FACTOR: 'display:scale-factor',
   DISPLAY_BOUNDS: 'display:bounds',
   RECORDING_START: 'recording:start',
-  RECORDING_STOP: 'recording:stop'
+  RECORDING_STOP: 'recording:stop',
+  SETTINGS_GET_ALL: 'settings:get-all',
+  SETTINGS_SET: 'settings:set',
+  SETTINGS_PICK_LOCATION: 'settings:pick-location',
+  FFMPEG_CONVERT: 'ffmpeg:convert',
+  FFMPEG_CANCEL: 'ffmpeg:cancel',
+  FFMPEG_PROGRESS: 'ffmpeg:progress',
+  VIDEO_SAVE: 'video:save'
 } as const
 
 /**
  * Register all IPC handlers
- * @param mainWindow Main browser window (for future use)
+ * @param mainWindow Main browser window
  */
-export function registerIpcHandlers(_mainWindow: BrowserWindow): void {
+export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // Source listing
   ipcMain.handle(IPC_CHANNELS.SOURCES_LIST, async () => {
     return getSources()
@@ -86,6 +97,87 @@ export function registerIpcHandlers(_mainWindow: BrowserWindow): void {
   ipcMain.handle(IPC_CHANNELS.RECORDING_STOP, async () => {
     return { success: true }
   })
+
+  // Settings: get all
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_ALL, async () => {
+    return getAllSettings()
+  })
+
+  // Settings: set single value
+  ipcMain.handle(
+    IPC_CHANNELS.SETTINGS_SET,
+    async (_event, key: keyof AppSettings, value: unknown) => {
+      setSetting(key, value as AppSettings[typeof key])
+    }
+  )
+
+  // Settings: pick save location
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_PICK_LOCATION, async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Select Save Location'
+    })
+
+    if (result.canceled || !result.filePaths[0]) {
+      return null
+    }
+
+    const location = result.filePaths[0]
+    setSetting('saveLocation', location)
+    return location
+  })
+
+  // FFmpeg: convert video
+  ipcMain.handle(
+    IPC_CHANNELS.FFMPEG_CONVERT,
+    async (
+      _event,
+      inputPath: string,
+      outputPath: string,
+      format: OutputFormat,
+      options: { resolution: Resolution; fps: FPS }
+    ) => {
+      try {
+        await convert(inputPath, outputPath, format, options, (percent) => {
+          mainWindow.webContents.send(IPC_CHANNELS.FFMPEG_PROGRESS, percent)
+        })
+        return { success: true }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Conversion failed'
+        return { success: false, error: message }
+      }
+    }
+  )
+
+  // FFmpeg: cancel conversion
+  ipcMain.handle(IPC_CHANNELS.FFMPEG_CANCEL, async () => {
+    cancelConversion()
+    return { success: true }
+  })
+
+  // Video: save to saveLocation
+  ipcMain.handle(
+    IPC_CHANNELS.VIDEO_SAVE,
+    async (_event, buffer: ArrayBuffer, filename: string) => {
+      try {
+        const settings = getAllSettings()
+        const saveDir = settings.saveLocation
+
+        // Ensure directory exists
+        if (!fs.existsSync(saveDir)) {
+          fs.mkdirSync(saveDir, { recursive: true })
+        }
+
+        const filePath = path.join(saveDir, filename)
+        fs.writeFileSync(filePath, Buffer.from(buffer))
+
+        return { success: true, path: filePath }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to save video'
+        return { success: false, error: message }
+      }
+    }
+  )
 }
 
 /**
