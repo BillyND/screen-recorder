@@ -1,6 +1,5 @@
 /**
  * Screen Recorder - Clean UI with Tailwind
- * Similar to focus-reminder design
  */
 
 import { useState, useEffect } from 'react'
@@ -10,10 +9,9 @@ import { Header } from './Header'
 import { Button } from './ui/button'
 import { SourcePicker } from './SourcePicker'
 import { AreaOverlay } from './AreaOverlay'
-import { SettingsPanel } from './SettingsPanel'
 import type { CaptureMode, CropArea, CaptureSource } from '../types/recorder'
 import { formatDuration, formatFileSize } from '../hooks/useRecordingTimer'
-import { Circle, Square, Pause, Play, Camera, Settings, Monitor, AppWindow, Maximize2, Volume2, Mic } from 'lucide-react'
+import { Circle, Square, Pause, Play, Camera, Monitor, AppWindow, Maximize2, Volume2, Mic } from 'lucide-react'
 
 /** Recording mode with icon */
 const MODES: { id: CaptureMode; label: string; Icon: typeof Monitor }[] = [
@@ -45,7 +43,6 @@ export function ScreenRecorder() {
   const [mode, setMode] = useState<CaptureMode>('fullscreen')
   const [selectedSource, setSelectedSource] = useState<CaptureSource | null>(null)
   const [showAreaSelector, setShowAreaSelector] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
   const [micLevel, setMicLevel] = useState(0)
   const [speakerLevel, setSpeakerLevel] = useState(0)
 
@@ -75,7 +72,10 @@ export function ScreenRecorder() {
   // Handle start recording
   const handleStart = async () => {
     if (mode === 'area') {
-      const area = await window.api?.areaSelector?.show(); if (area) { await startRecording({ captureMode: 'area', area, includeSystemAudio: settings.includeAudio }); }
+      const area = await window.api?.areaSelector?.show()
+      if (area) {
+        await startRecording({ captureMode: 'area', area, includeSystemAudio: settings.includeAudio })
+      }
       return
     }
 
@@ -126,7 +126,7 @@ export function ScreenRecorder() {
 
   return (
     <div className="h-full flex flex-col">
-      <Header />
+      <Header isRecording={isRecording} />
 
       {/* Error banner */}
       {error && (
@@ -157,24 +157,8 @@ export function ScreenRecorder() {
         ))}
       </div>
 
-      {/* Settings panel toggle */}
-      <div className="flex items-center justify-end px-3 py-2 border-b">
-        <Button
-          variant={showSettings ? 'secondary' : 'ghost'}
-          size="sm"
-          onClick={() => setShowSettings(!showSettings)}
-          disabled={isRecording}
-        >
-          <Settings className="h-4 w-4 mr-1" />
-          Settings
-        </Button>
-      </div>
-
-      {/* Settings panel */}
-      {showSettings && <SettingsPanel isOpen={showSettings} disabled={isRecording} />}
-
       {/* Source picker for window mode */}
-      {mode === 'window' && !isRecording && !showSettings && (
+      {mode === 'window' && !isRecording && (
         <SourcePicker
           sources={sources}
           selectedId={selectedSource?.id ?? null}
@@ -270,17 +254,6 @@ export function ScreenRecorder() {
             </Button>
           </>
         )}
-      </div>
-
-      {/* Status bar */}
-      <div className="flex items-center justify-center gap-2 px-4 py-2 border-t text-xs text-muted-foreground">
-        <span>{settings.outputFormat.toUpperCase()}</span>
-        <span>|</span>
-        <span>{settings.resolution === 'original' ? 'Original' : settings.resolution}</span>
-        <span>|</span>
-        <span>{settings.fps} FPS</span>
-        <span>|</span>
-        <span>{settings.includeAudio ? 'Audio ON' : 'Audio OFF'}</span>
       </div>
     </div>
   )
