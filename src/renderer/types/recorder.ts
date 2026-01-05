@@ -36,12 +36,21 @@ export interface RecorderState {
   error?: string      // Error message if failed
 }
 
+/** Bounds for window/screen positioning */
+export interface SourceBounds {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 /** Capture source info (screen or window) */
 export interface CaptureSource {
   id: string
   name: string
   thumbnail?: string  // Base64 data URL
   type: 'screen' | 'window'
+  bounds?: SourceBounds  // Position and size on screen
 }
 
 /**

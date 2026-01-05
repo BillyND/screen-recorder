@@ -5,8 +5,9 @@
 import { memo, useCallback } from "react"
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { Minus, Square, X, Settings } from "lucide-react"
+import { Minus, Square, X, Settings, Sun, Moon } from "lucide-react"
 import { useSettings } from "../hooks/useSettings"
+import { useTheme } from "../hooks/useTheme"
 import { RESOLUTION_LABELS, FPS_OPTIONS, FORMAT_LABELS } from "../types/settings"
 import type { Resolution, FPS, OutputFormat } from "../types/settings"
 
@@ -24,6 +25,8 @@ export const Header = memo(function Header({ isRecording = false }: HeaderProps)
     setOutputFormat,
     setIncludeAudio
   } = useSettings()
+
+  const { toggleTheme, isDark } = useTheme()
 
   const handleMinimize = useCallback(() => {
     window.api?.window?.minimize?.()
@@ -49,6 +52,17 @@ export const Header = memo(function Header({ isRecording = false }: HeaderProps)
       </div>
 
       <div className="non-draggable flex items-center gap-1">
+        {/* Theme Toggle */}
+        <Button
+          onClick={toggleTheme}
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {isDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+        </Button>
+
         {/* Settings Popover */}
         <Popover>
           <PopoverTrigger asChild>

@@ -9,9 +9,12 @@ import { Header } from './Header'
 import { Button } from './ui/button'
 import { SourcePicker } from './SourcePicker'
 import { AreaOverlay } from './AreaOverlay'
+import { ScreenPreview } from './ScreenPreview'
 import type { CaptureMode, CropArea, CaptureSource } from '../types/recorder'
 import { formatDuration, formatFileSize } from '../hooks/useRecordingTimer'
 import { Circle, Square, Pause, Play, Camera, Monitor, AppWindow, Maximize2, Volume2, Mic } from 'lucide-react'
+
+// Note: Monitor, AppWindow, Maximize2 used in MODES array for tab icons
 
 /** Recording mode with icon */
 const MODES: { id: CaptureMode; label: string; Icon: typeof Monitor }[] = [
@@ -43,6 +46,7 @@ export function ScreenRecorder() {
   const [mode, setMode] = useState<CaptureMode>('fullscreen')
   const [selectedSource, setSelectedSource] = useState<CaptureSource | null>(null)
   const [showAreaSelector, setShowAreaSelector] = useState(false)
+  const [selectedArea, setSelectedArea] = useState<CropArea | null>(null)
   const [micLevel, setMicLevel] = useState(0)
   const [speakerLevel, setSpeakerLevel] = useState(0)
 
@@ -67,13 +71,16 @@ export function ScreenRecorder() {
     if (isRecording) return
     setMode(newMode)
     setSelectedSource(null)
+    setSelectedArea(null)
   }
 
   // Handle start recording
   const handleStart = async () => {
     if (mode === 'area') {
-      const area = await window.api?.areaSelector?.show()
+      // Use already selected area or prompt for new one
+      const area = selectedArea || await window.api?.areaSelector?.show()
       if (area) {
+        setSelectedArea(area)
         await startRecording({ captureMode: 'area', area, includeSystemAudio: settings.includeAudio })
       }
       return
@@ -86,9 +93,18 @@ export function ScreenRecorder() {
     })
   }
 
-  // Handle area selection
+  // Handle selecting area for preview (without recording)
+  const handleSelectArea = async () => {
+    const area = await window.api?.areaSelector?.show()
+    if (area) {
+      setSelectedArea(area)
+    }
+  }
+
+  // Handle area selection (legacy - from overlay)
   const handleAreaSelect = async (area: CropArea) => {
     setShowAreaSelector(false)
+    setSelectedArea(area)
     await startRecording({
       captureMode: 'area',
       area,
@@ -168,9 +184,18 @@ export function ScreenRecorder() {
         />
       )}
 
-      {/* Main content area */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden">
-        {isRecording ? (
+      {/* Live preview for fullscreen and area modes */}
+      {(mode === 'fullscreen' || mode === 'area') && !isRecording && (
+        <ScreenPreview
+          mode={mode === 'fullscreen' ? 'fullscreen' : 'area'}
+          area={selectedArea}
+          active={true}
+        />
+      )}
+
+      {/* Recording stats - only show when recording */}
+      {isRecording && (
+        <main className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden">
           <div className="flex flex-col items-center gap-4">
             {/* Recording indicator */}
             <div className="flex items-center gap-2">
@@ -190,19 +215,8 @@ export function ScreenRecorder() {
               </div>
             </div>
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3 text-center">
-            {mode === 'fullscreen' && <Monitor className="h-12 w-12 text-muted-foreground" />}
-            {mode === 'window' && <AppWindow className="h-12 w-12 text-muted-foreground" />}
-            {mode === 'area' && <Maximize2 className="h-12 w-12 text-muted-foreground" />}
-            <p className="text-sm text-muted-foreground">
-              {mode === 'fullscreen' && 'Ready to record full screen'}
-              {mode === 'window' && (selectedSource ? `Recording: ${selectedSource.name}` : 'Select a window to record')}
-              {mode === 'area' && 'Click REC to select area'}
-            </p>
-          </div>
-        )}
-      </main>
+        </main>
+      )}
 
       {/* Volume meters */}
       <div className="flex gap-4 px-4 py-2 border-t">
@@ -224,6 +238,16 @@ export function ScreenRecorder() {
       <div className="flex gap-2 justify-center p-4 border-t">
         {!isRecording ? (
           <>
+            {/* Select Area button for area mode */}
+            {mode === 'area' && (
+              <Button
+                variant="outline"
+                onClick={handleSelectArea}
+              >
+                <Maximize2 className="h-4 w-4 mr-2" />
+                {selectedArea ? 'Reselect' : 'Select Area'}
+              </Button>
+            )}
             <Button
               onClick={handleStart}
               disabled={!canStart}

@@ -7,6 +7,7 @@ import { ipcMain, BrowserWindow, dialog } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { getSources, getDisplayScaleFactor, getPrimaryDisplayBounds } from './capturer'
+import { showHighlightForBounds, hideHighlight } from './window-highlight'
 import { getAllSettings, setSetting, type AppSettings, type OutputFormat, type Resolution, type FPS } from './settings-store'
 import { convert, cancelConversion } from './ffmpeg-service'
 import type { RecordingOptions } from '../renderer/types/recorder'
@@ -24,7 +25,9 @@ export const IPC_CHANNELS = {
   FFMPEG_CONVERT: 'ffmpeg:convert',
   FFMPEG_CANCEL: 'ffmpeg:cancel',
   FFMPEG_PROGRESS: 'ffmpeg:progress',
-  VIDEO_SAVE: 'video:save'
+  VIDEO_SAVE: 'video:save',
+  HIGHLIGHT_SHOW: 'highlight:show',
+  HIGHLIGHT_HIDE: 'highlight:hide'
 } as const
 
 /**
@@ -178,6 +181,26 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       }
     }
   )
+
+  // Highlight: show overlay around bounds
+  ipcMain.handle(
+    IPC_CHANNELS.HIGHLIGHT_SHOW,
+    async (_event, bounds: { x: number; y: number; width: number; height: number }) => {
+      try {
+        showHighlightForBounds(bounds)
+        return { success: true }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to show highlight'
+        return { success: false, error: message }
+      }
+    }
+  )
+
+  // Highlight: hide overlay
+  ipcMain.handle(IPC_CHANNELS.HIGHLIGHT_HIDE, async () => {
+    hideHighlight()
+    return { success: true }
+  })
 }
 
 /**

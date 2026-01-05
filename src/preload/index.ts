@@ -21,7 +21,9 @@ const IPC_CHANNELS = {
   FFMPEG_CONVERT: 'ffmpeg:convert',
   FFMPEG_CANCEL: 'ffmpeg:cancel',
   FFMPEG_PROGRESS: 'ffmpeg:progress',
-  VIDEO_SAVE: 'video:save'
+  VIDEO_SAVE: 'video:save',
+  HIGHLIGHT_SHOW: 'highlight:show',
+  HIGHLIGHT_HIDE: 'highlight:hide'
 } as const
 
 /** Event listeners for cleanup */
@@ -54,9 +56,6 @@ const api = {
     /** Cancel selection (called from overlay) */
     cancel: (): void =>
       ipcRenderer.send('area-selector:cancel')
-  },
-
-  /** Source discovery MARKER
   },
 
   /** Source discovery */
@@ -194,6 +193,17 @@ const api = {
       const buffer = await blob.arrayBuffer()
       return ipcRenderer.invoke(IPC_CHANNELS.VIDEO_SAVE, buffer, filename)
     }
+  },
+
+  /** Window highlight overlay */
+  highlight: {
+    /** Show yellow highlight overlay around bounds */
+    show: (bounds: { x: number; y: number; width: number; height: number }): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke(IPC_CHANNELS.HIGHLIGHT_SHOW, bounds),
+
+    /** Hide highlight overlay */
+    hide: (): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke(IPC_CHANNELS.HIGHLIGHT_HIDE)
   }
 }
 
