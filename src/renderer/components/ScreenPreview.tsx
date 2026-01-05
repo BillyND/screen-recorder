@@ -8,8 +8,8 @@ import { Monitor, Maximize2 } from 'lucide-react'
 import type { CropArea } from '../types/recorder'
 
 interface Props {
-  /** Preview mode */
-  mode: 'source' | 'area'
+  /** Preview mode: fullscreen (always show), source (with sourceId), area (with crop) */
+  mode: 'fullscreen' | 'source' | 'area'
   /** Source ID for source mode (screen or window) */
   sourceId?: string
   /** Selected area for area mode */
@@ -47,8 +47,8 @@ export function ScreenPreview({ mode, sourceId, area, active = true }: Props) {
       try {
         let captureSourceId = sourceId
 
-        // For area mode, get primary screen
-        if (mode === 'area') {
+        // For fullscreen or area mode, get primary screen
+        if (mode === 'fullscreen' || mode === 'area') {
           const sources = await window.api?.sources?.list()
           const screenSource = sources?.find((s: { type: string }) => s.type === 'screen')
           if (!screenSource) {
@@ -56,7 +56,7 @@ export function ScreenPreview({ mode, sourceId, area, active = true }: Props) {
             return
           }
           captureSourceId = screenSource.id
-          setSourceName('Screen')
+          setSourceName(mode === 'fullscreen' ? 'Full Screen' : 'Screen')
         } else {
           // Get source name for display
           const sources = await window.api?.sources?.list()
@@ -183,7 +183,7 @@ export function ScreenPreview({ mode, sourceId, area, active = true }: Props) {
         />
         {/* Mode indicator */}
         <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 rounded text-[10px] text-white/80 max-w-[150px] truncate">
-          {mode === 'source' ? sourceName : `Area ${area?.width}×${area?.height}`}
+          {mode === 'fullscreen' ? 'Full Screen' : mode === 'source' ? sourceName : `Area ${area?.width}×${area?.height}`}
         </div>
       </div>
     </div>

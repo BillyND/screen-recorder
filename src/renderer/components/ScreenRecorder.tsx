@@ -1,5 +1,5 @@
 /**
- * Screen Recorder - Clean UI with Tailwind
+ * Screen Recorder - Simple UI with Screen/Area modes
  */
 
 import { useState, useEffect } from "react";
@@ -7,26 +7,25 @@ import { useScreenRecorder } from "../hooks/useScreenRecorder";
 import { useSettings } from "../hooks/useSettings";
 import { Header } from "./Header";
 import { Button } from "./ui/button";
-import { SourcePicker } from "./SourcePicker";
 import { AreaOverlay } from "./AreaOverlay";
 import { ScreenPreview } from "./ScreenPreview";
-import type { CaptureMode, CropArea, CaptureSource } from "../types/recorder";
+import type { CropArea } from "../types/recorder";
 import { formatDuration, formatFileSize } from "../hooks/useRecordingTimer";
 import {
   Circle,
   Square,
   Pause,
   Play,
-  Camera,
   Monitor,
   Maximize2,
   Volume2,
   Mic,
 } from "lucide-react";
 
-/** Recording mode with icon */
-const MODES: { id: CaptureMode; label: string; Icon: typeof Monitor }[] = [
-  { id: "window", label: "Screen", Icon: Monitor },
+type SimpleMode = "screen" | "area";
+
+const MODES: { id: SimpleMode; label: string; Icon: typeof Monitor }[] = [
+  { id: "screen", label: "Screen", Icon: Monitor },
   { id: "area", label: "Area", Icon: Maximize2 },
 ];
 
@@ -40,9 +39,6 @@ export function ScreenRecorder() {
     stopRecording,
     pauseRecording,
     resumeRecording,
-    sources,
-    refreshSources,
-    sourcesLoading,
     error,
     clearError,
   } = useScreenRecorder();
@@ -50,10 +46,7 @@ export function ScreenRecorder() {
   const { settings } = useSettings();
 
   // Local UI state
-  const [mode, setMode] = useState<CaptureMode>("window");
-  const [selectedSource, setSelectedSource] = useState<CaptureSource | null>(
-    null
-  );
+  const [mode, setMode] = useState<SimpleMode>("screen");
   const [showAreaSelector, setShowAreaSelector] = useState(false);
   const [selectedArea, setSelectedArea] = useState<CropArea | null>(null);
   const [micLevel, setMicLevel] = useState(0);
@@ -66,27 +59,23 @@ export function ScreenRecorder() {
       setSpeakerLevel(0);
       return;
     }
-
     const interval = setInterval(() => {
       setMicLevel(Math.random() * 80 + 10);
       setSpeakerLevel(Math.random() * 70 + 20);
     }, 100);
-
     return () => clearInterval(interval);
   }, [isRecording]);
 
   // Handle mode change
-  const handleModeChange = (newMode: CaptureMode) => {
+  const handleModeChange = (newMode: SimpleMode) => {
     if (isRecording) return;
     setMode(newMode);
-    setSelectedSource(null);
     setSelectedArea(null);
   };
 
   // Handle start recording
   const handleStart = async () => {
     if (mode === "area") {
-      // Use already selected area or prompt for new one
       const area = selectedArea || (await window.api?.areaSelector?.show());
       if (area) {
         setSelectedArea(area);
@@ -99,20 +88,14 @@ export function ScreenRecorder() {
       return;
     }
 
-    // Screen/window mode - use selected source
-    if (!selectedSource) return;
-
-    // Determine capture mode based on source type
-    const captureMode = selectedSource.type === "screen" ? "fullscreen" : "window";
-
+    // Screen mode - capture fullscreen
     await startRecording({
-      captureMode,
-      windowId: selectedSource.id,
+      captureMode: "fullscreen",
       includeSystemAudio: settings.includeAudio,
     });
   };
 
-  // Handle selecting area for preview (without recording)
+  // Handle selecting area for preview
   const handleSelectArea = async () => {
     const area = await window.api?.areaSelector?.show();
     if (area) {
@@ -120,7 +103,7 @@ export function ScreenRecorder() {
     }
   };
 
-  // Handle area selection (legacy - from overlay)
+  // Handle area selection from overlay
   const handleAreaSelect = async (area: CropArea) => {
     setShowAreaSelector(false);
     setSelectedArea(area);
@@ -145,23 +128,15 @@ export function ScreenRecorder() {
       .slice(0, 19);
     const filename = `recording-${timestamp}.webm`;
 
-    // Save to configured saveLocation via IPC
     try {
       const result = await window.api.video.save(blob, filename);
       if (result.success && result.path) {
-        console.log("Video saved successfully to:", result.path);
-        // Open the folder containing the saved file
         await window.api.shell.showItemInFolder(result.path);
-      } else {
-        console.error("Failed to save video:", result.error);
       }
     } catch (err) {
       console.error("Error saving video:", err);
     }
   };
-
-  // Can start check - require source selection for screen mode
-  const canStart = isIdle && (mode === "area" || selectedSource !== null);
 
   // Show area overlay
   if (showAreaSelector) {
@@ -198,9 +173,7 @@ export function ScreenRecorder() {
                   ? "border-b-2 border-primary text-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }
-              ${
-                isRecording ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-              }
+              ${isRecording ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
             `}
             onClick={() => handleModeChange(m.id)}
             disabled={isRecording}
@@ -211,43 +184,38 @@ export function ScreenRecorder() {
         ))}
       </div>
 
-      {/* Source picker for screen mode */}
-      {mode === "window" && !isRecording && (
-        <SourcePicker
-          sources={sources}
-          selectedId={selectedSource?.id ?? null}
-          onSelect={setSelectedSource}
-          onRefresh={refreshSources}
-          loading={sourcesLoading}
-        />
-      )}
+      {/* Content area - Preview */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
+        {mode === "screen" ? (
+          /* Screen mode: always show realtime preview */
+          <ScreenPreview
+            mode="fullscreen"
+            active={true}
+          />
+        ) : (
+          /* Area mode: show preview when area is selected */
+          selectedArea ? (
+            <ScreenPreview
+              mode="area"
+              area={selectedArea}
+              active={true}
+            />
+          ) : (
+            <div className="text-center text-muted-foreground">
+              <Maximize2 className="h-16 w-16 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">Select an area to record</p>
+            </div>
+          )
+        )}
+      </div>
 
-      {/* Live preview - only show when recording */}
-      {isRecording && mode === "window" && selectedSource && (
-        <ScreenPreview
-          mode="source"
-          sourceId={selectedSource.id}
-          active={true}
-        />
-      )}
-      {isRecording && mode === "area" && (
-        <ScreenPreview
-          mode="area"
-          area={selectedArea}
-          active={true}
-        />
-      )}
-
-      {/* Recording stats - show below preview when recording */}
+      {/* Recording stats */}
       {isRecording && (
         <div className="flex items-center justify-center gap-6 px-4 py-2 border-t bg-muted/30">
-          {/* Recording indicator */}
           <div className="flex items-center gap-1.5">
             <span
               className={`text-lg ${
-                isPaused
-                  ? "text-orange-500"
-                  : "text-red-500 animate-pulse-recording"
+                isPaused ? "text-orange-500" : "text-red-500 animate-pulse-recording"
               }`}
             >
               ●
@@ -256,14 +224,12 @@ export function ScreenRecorder() {
               {isPaused ? "PAUSED" : "REC"}
             </span>
           </div>
-          {/* Duration */}
           <div className="flex items-center gap-1">
             <span className="text-xs text-muted-foreground">Time:</span>
             <span className="text-sm font-mono">
               {formatDuration(state.duration)}
             </span>
           </div>
-          {/* Size */}
           <div className="flex items-center gap-1">
             <span className="text-xs text-muted-foreground">Size:</span>
             <span className="text-sm font-mono">
@@ -299,23 +265,19 @@ export function ScreenRecorder() {
       <div className="flex gap-2 justify-center p-4 border-t">
         {!isRecording ? (
           <>
-            {/* Select Area button for area mode */}
             {mode === "area" && (
               <Button variant="outline" onClick={handleSelectArea}>
                 <Maximize2 className="h-4 w-4 mr-2" />
-                {selectedArea ? "Reselect" : "Select Area"}
+                {selectedArea ? "Reselect" : "Select"}
               </Button>
             )}
             <Button
               onClick={handleStart}
-              disabled={!canStart}
+              disabled={!isIdle || (mode === "area" && !selectedArea)}
               className="bg-red-500 hover:bg-red-600 text-white px-6"
             >
               <Circle className="h-4 w-4 mr-2 fill-current" />
               REC
-            </Button>
-            <Button variant="outline" disabled>
-              <Camera className="h-4 w-4" />
             </Button>
           </>
         ) : (
@@ -324,11 +286,7 @@ export function ScreenRecorder() {
               variant={isPaused ? "default" : "outline"}
               onClick={isPaused ? resumeRecording : pauseRecording}
             >
-              {isPaused ? (
-                <Play className="h-4 w-4" />
-              ) : (
-                <Pause className="h-4 w-4" />
-              )}
+              {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
             </Button>
             <Button variant="destructive" onClick={handleStop} className="px-6">
               <Square className="h-4 w-4 mr-2 fill-current" />
